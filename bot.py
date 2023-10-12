@@ -2,48 +2,65 @@ import json
 import requests
 import os
 import re
+import logging
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pyrogram.enums import ParseMode
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 moderator_ids = [1902879847, 1097234204, 5543537764]
-api_id = 13340341
-api_hash = "e83570d934a86b99cc9bdd3210c1d269"
-bot_token = "6628987065:AAHhoQxS1ZVX35I2dv8CwaKlv32f9DESGZw"
+api_id = 29248158
+api_hash = "75bb1a0bbeb8435a7904321df8782c8b"
+bot_token = "6582993584:AAEwCvVXuDTAwcx7n8bjBdHxgiVwbX0wmvo"
 app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 user_choices = {}
 
 def get_github_raw_file_content_as_list(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    content_list = response.text.split("\n")
-    user_list = []
-    for line in content_list:
-        line = line.strip() 
-        if "#" in line:
-            line = line.split("#")[0].strip()
-        user_list.append(line)
-    return user_list
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return [line.split("#")[0].strip() for line in response.text.split("\n") if line.strip()]
+    except Exception as e:
+        logger.error(f"Error fetching file content from GitHub: {e}")
+        return []
 
 def is_user_registered(user_id):
-    with open("users.txt", "r") as user_file:
-        user_list = user_file.read().splitlines()
-    return str(user_id) in user_list
+    try:
+        with open("users.txt", "r") as user_file:
+            return str(user_id) in user_file.read().splitlines()
+    except Exception as e:
+        logger.error(f"Error checking user registration: {e}")
+        return False
 
 def load_user_usage():
-    with open("user_usage.json", "r") as file:
-        return json.load(file)
+    try:
+        if os.path.exists("user_usage.json"):
+            with open("user_usage.json", "r") as file:
+                return json.load(file)
+        else:
+            return {}
+    except Exception as e:
+        logger.error(f"Error loading user usage: {e}")
+        return {}
 
 def save_user_usage(user_usage):
-    with open("user_usage.json", "w") as file:
-        json.dump(user_usage, file)
+    try:
+        with open("user_usage.json", "w") as file:
+            json.dump(user_usage, file)
+    except Exception as e:
+        logger.error(f"Error saving user usage: {e}")
 
 @app.on_message(filters.command('start'))
 async def start(client, message):
     if not is_user_registered(message.from_user.id):
-        with open("users.txt", "a") as user_file:
-            user_file.write(str(message.from_user.id) + "\n")
-        await message.reply_text("**Welcome! You are a free user. You get 2 free searches.**", parse_mode=ParseMode.MARKDOWN)
+        try:
+            with open("users.txt", "a") as user_file:
+                user_file.write(str(message.from_user.id) + "\n")
+            await message.reply_text("**Welcome! You are a free user. You get 2 free searches.**", parse_mode=ParseMode.MARKDOWN)
+        except Exception as e:
+            logger.error(f"Error registering user: {e}")
     search_button = InlineKeyboardButton("Search", callback_data="search_options")
     keyboard = InlineKeyboardMarkup([[search_button]])
     await message.reply_text("**This bot helps by searching logs database and find data you ask.**\n"
@@ -58,7 +75,7 @@ async def search_command(client, message):
 @app.on_message(filters.command('id'))
 async def id_command(client, message):
     user_id = message.from_user.id
-    await message.reply_text(f"**Your User ID:**\n`user_id`\n\n**You can click to copy and send it to @deathmatix if you want to buy a subscription.**", parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(f"**Your User ID:**\n`{user_id}`\n\n**You can click to copy and send it to @deathmatix if you want to buy a subscription.**", parse_mode=ParseMode.MARKDOWN)
 
 @app.on_callback_query(filters.regex("search_options"))
 async def search_options_callback_handler(client, query: CallbackQuery):
@@ -78,7 +95,7 @@ async def search_type_callback_handler(client, query: CallbackQuery):
     await query.answer()
     search_type = query.data.replace("search_type_", "")
     user_choices[query.from_user.id] = search_type
-    await query.message.reply_text(f"**Please enter the search_type you want to search for (Reply to this message).**", parse_mode=ParseMode.MARKDOWN)
+    await query.message.reply_text(f"**Please enter the {search_type} you want to search for (Reply to this message).**", parse_mode=ParseMode.MARKDOWN)
 
 @app.on_message(filters.text & filters.reply)
 async def handle_search_query(client, message: Message):
@@ -94,9 +111,11 @@ async def handle_search_query(client, message: Message):
             "X-Auth-Code": "mOaOUyxvBvyHJlpRz6",
             "Content-Type": "application/json",
         }
+        
         data = {
             "searchterm": search_term
         }
+        
         search_option = user_choices.get(message.from_user.id)
         if search_option == "password":
             response = requests.post("https://serval-smart-troll.ngrok-free.app/search", headers=headers, json=data)
@@ -110,6 +129,7 @@ async def handle_search_query(client, message: Message):
                     'Auth': snusbase_auth,
                     'Content-Type': 'application/json',
                 }
+                
                 method = 'POST' if body else 'GET'
                 data = json.dumps(body) if body else None
                 response = requests.request(method, snusbase_api + url, headers=headers, data=data)
