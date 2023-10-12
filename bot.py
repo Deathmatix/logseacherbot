@@ -7,10 +7,10 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQ
 from pyrogram.enums import ParseMode
 
 moderator_ids = [1902879847, 1097234204, 5543537764]
-api_id = 29248158
-api_hash = "75bb1a0bbeb8435a7904321df8782c8b"
-bot_token = "6582993584:AAEwCvVXuDTAwcx7n8bjBdHxgiVwbX0wmvo"
-app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
+api_id = 13340341
+api_hash = "e83570d934a86b99cc9bdd3210c1d269"
+bot_token = "6628987065:AAHhoQxS1ZVX35I2dv8CwaKlv32f9DESGZw"
+app = Client("botop", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 user_choices = {}
 
 def get_github_raw_file_content_as_list(url):
@@ -24,6 +24,7 @@ def get_github_raw_file_content_as_list(url):
             line = line.split("#")[0].strip()
         user_list.append(line)
     return user_list
+
 
 def is_user_registered(user_id):
     with open("users.txt", "r") as user_file:
@@ -44,7 +45,7 @@ async def start(client, message):
         with open("users.txt", "a") as user_file:
             user_file.write(str(message.from_user.id) + "\n")
     user_s = get_github_raw_file_content_as_list("https://raw.githubusercontent.com/Deathmatix/verify-logsearch/main/users.txt")
-    if message.from_user.id not in user_s:
+    if str(message.from_user.id) not in user_s:
         await message.reply_text("**Welcome! You are a free user. You get 2 free searches.**", parse_mode=ParseMode.MARKDOWN)
     search_button = InlineKeyboardButton("Search", callback_data="search_options")
     keyboard = InlineKeyboardMarkup([[search_button]])
