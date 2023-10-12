@@ -7,9 +7,9 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQ
 from pyrogram.enums import ParseMode
 
 moderator_ids = [1902879847, 1097234204, 5543537764]
-api_id = 29248158
-api_hash = "75bb1a0bbeb8435a7904321df8782c8b"
-bot_token = "6582993584:AAEwCvVXuDTAwcx7n8bjBdHxgiVwbX0wmvo"
+api_id = 13340341
+api_hash = "e83570d934a86b99cc9bdd3210c1d269"
+bot_token = "6628987065:AAHhoQxS1ZVX35I2dv8CwaKlv32f9DESGZw"
 app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 user_choices = {}
 
