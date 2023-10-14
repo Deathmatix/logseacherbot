@@ -6,7 +6,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pyrogram.enums import ParseMode
 
-moderator_ids = [1902879847, 1097234204, 5543537764]
+moderator_ids = [1902879847, 1097234204, 5543537764, 6212030865]
 api_id = 13340341
 api_hash = "e83570d934a86b99cc9bdd3210c1d269"
 bot_token = "6628987065:AAHhoQxS1ZVX35I2dv8CwaKlv32f9DESGZw"
@@ -25,7 +25,6 @@ def get_github_raw_file_content_as_list(url):
         user_list.append(line)
     return user_list
 
-
 def is_user_registered(user_id):
     with open("users.txt", "r") as user_file:
         user_list = user_file.read().splitlines()
@@ -38,6 +37,68 @@ def load_user_usage():
 def save_user_usage(user_usage):
     with open("user_usage.json", "w") as file:
         json.dump(user_usage, file)
+
+
+broadcast_text = None
+broadcast_type = None
+
+@app.on_message(filters.command('broadcast') & filters.user(moderator_ids))
+async def broadcast_command(client, message: Message):
+    global broadcast_text
+    if len(message.command) < 2:
+        await message.reply_text("**Usage: /broadcast [message]**", parse_mode=ParseMode.MARKDOWN)
+        return
+    broadcast_text = message.text.split(None, 1)[1]
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Text", callback_data="text"), InlineKeyboardButton("Image or GIF", callback_data="media")]
+    ])
+    await message.reply_text("**Choose the type of broadcast:**", reply_markup=keyboard)
+
+@app.on_callback_query(filters.user(moderator_ids) & filters.regex("^text$"))
+async def broadcast_text_callback(client, callback_query: CallbackQuery):
+    global broadcast_type, broadcast_text
+    broadcast_type = "text"
+    with open("users.txt", "r") as user_file:
+        user_list = user_file.read().splitlines()
+    total_users = len(user_list)
+    successful_messages = 0
+    for user_id in user_list:
+        try:
+            await client.send_message(int(user_id), broadcast_text, parse_mode=ParseMode.MARKDOWN)
+            successful_messages += 1
+        except Exception as e:
+            pass
+    await callback_query.message.reply_text(f"**Broadcasted message to {successful_messages}/{total_users} users.**", parse_mode=ParseMode.MARKDOWN)
+    broadcast_text = None
+    broadcast_type = None
+
+@app.on_callback_query(filters.user(moderator_ids) & filters.regex("^media$"))
+async def broadcast_media_callback(client, callback_query: CallbackQuery):
+    global broadcast_type
+    broadcast_type = "media"
+    await callback_query.message.reply_text("**Now send the image or gif you want to broadcast.**", parse_mode=ParseMode.MARKDOWN)
+
+@app.on_message(filters.user(moderator_ids) & (filters.photo | filters.animation))
+async def broadcast_message(client, message: Message):
+    global broadcast_text, broadcast_type
+    if broadcast_type != "media" or broadcast_text is None:
+        return
+    with open("users.txt", "r") as user_file:
+        user_list = user_file.read().splitlines()
+    total_users = len(user_list)
+    successful_messages = 0
+    for user_id in user_list:
+        try:
+            if message.photo:
+                await client.send_photo(int(user_id), photo=message.photo.file_id, caption=broadcast_text, parse_mode=ParseMode.MARKDOWN)
+            elif message.animation:
+                await client.send_animation(int(user_id), animation=message.animation.file_id, caption=broadcast_text, parse_mode=ParseMode.MARKDOWN)
+            successful_messages += 1
+        except Exception as e:
+            pass
+    await message.reply_text(f"**Broadcasted message to {successful_messages}/{total_users} users.**", parse_mode=ParseMode.MARKDOWN)
+    broadcast_text = None
+    broadcast_type = None
 
 @app.on_message(filters.command('start'))
 async def start(client, message):
@@ -126,7 +187,7 @@ async def handle_search_query(client, message: Message):
             })  
             formatted_text = json.dumps(search_response, indent=2)
 
-        caption = f"Logs by @Deathmatix - {search_term.capitalize()}"
+        caption = f"Logs by @Deathmatix - search_term.capitalize()"
         formatted_text = caption + "\n\n" + formatted_text
         result_file_name = f"{message.from_user.id}_{sanitized_search_term}.txt"
         
@@ -151,6 +212,6 @@ async def handle_search_query(client, message: Message):
             await message.reply_text(f"**You are a free user. You have used one of your free searches. You have {remaining_searches} searches remaining.**", parse_mode=ParseMode.MARKDOWN)
             
     else:
-        await message.reply_text("**You have reached your limit. Please subscribe to continue using the bot. Contact @deathmatix to get the subscription.**", parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text("**You have reached your limit. Please subscribe to continue using this bot. Contact @deathmatix to buy a subscription.**", parse_mode=ParseMode.MARKDOWN)
 
 app.run()
