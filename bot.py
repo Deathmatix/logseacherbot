@@ -38,6 +38,18 @@ def save_user_usage(user_usage):
     with open("user_usage.json", "w") as file:
         json.dump(user_usage, file)
 
+@app.on_message(filters.command('stats') & filters.user(moderator_ids))
+async def stats_command(client, message: Message):
+    with open("users.txt", "r") as user_file:
+        user_list = user_file.read().splitlines()
+    user_usage = load_user_usage()
+    stats_message = ""
+    for user_id in user_list:
+        usage_count = user_usage.get(user_id, 0)
+        stats_message += f"[{user_id}](tg://user?id={user_id}) : {usage_count}\n"
+    await message.reply_text(stats_message, parse_mode=ParseMode.MARKDOWN)
+    await message.reply_document("users.txt")
+    await message.reply_document("user_usage.json")
 
 broadcast_text = None
 broadcast_type = None
