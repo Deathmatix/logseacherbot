@@ -43,14 +43,6 @@ def save_user_usage(user_usage):
 
 @app.on_message(filters.command('stats') & filters.user(moderator_ids))
 async def stats_command(client, message: Message):
-    with open("users.txt", "r") as user_file:
-        user_list = user_file.read().splitlines()
-    user_usage = load_user_usage()
-    stats_message = ""
-    for user_id in user_list:
-        usage_count = user_usage.get(user_id, 0)
-        stats_message += f"[{user_id}](tg://user?id={user_id}) : {usage_count}\n"
-    await message.reply_text(stats_message, parse_mode=ParseMode.MARKDOWN)
     await message.reply_document("users.txt")
     await message.reply_document("user_usage.json")
 
@@ -137,7 +129,7 @@ async def search_command(client, message):
 @app.on_message(filters.command('id'))
 async def id_command(client, message):
     user_id = message.from_user.id
-    await message.reply_text(f"**Your User ID:**\n`user_id`\n\n**You can click to copy and send it to @deathmatix if you want to buy a subscription.**", parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(f"**Your User ID:**\n`{user_id}`\n\n**You can click to copy and send it to @deathmatix if you want to buy a subscription.**", parse_mode=ParseMode.MARKDOWN)
 
 @app.on_callback_query(filters.regex("search_options"))
 async def search_options_callback_handler(client, query: CallbackQuery):
